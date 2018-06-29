@@ -1,9 +1,12 @@
 require 'pry'
+require 'rack-flash'
 
 class SongsController < Sinatra::Base
   register Sinatra::ActiveRecordExtension
   set :session_secret, "my_application_secret"
   set :views, Proc.new { File.join(root, "../views/") }
+  enable :sessions
+  use Rack::Flash
 
   get '/' do
     @songs = Song.all
@@ -16,6 +19,8 @@ class SongsController < Sinatra::Base
   end
 
   get '/songs/new' do
+    @song = Song.new
+
     erb :"/songs/new"
   end
 
@@ -25,16 +30,13 @@ class SongsController < Sinatra::Base
   end
 
   post '/songs' do
-    @song = Song.create(name: params[:song][:name])
-
+    @song = Song.create(params[:song])
     @song.artist = Artist.find_or_create_by(name: params[:artist][:name])
 
-    # if !Artist.all.find_by(name: params[:artist][:name])
-    #   @song.artist = Artist.create(name: params[:artist][:name])
-    #   @song.artist.save
-    #   #binding.pry
-    # end
+    @song.genres = params[:genres].collect {|num| Genre.find(num)}
 
-    redirect "/songs/#{@song.slug}"
+    @song.save
+    flash[:message] = "Successfully created song."
+    redirect "/songs/#{ @song.slug }"
   end
 end
