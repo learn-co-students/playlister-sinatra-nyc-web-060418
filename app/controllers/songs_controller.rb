@@ -7,6 +7,8 @@ class SongsController < Sinatra::Base
   set :views, Proc.new { File.join(root, "../views/") }
   enable :sessions
   use Rack::Flash
+  use Rack::MethodOverride
+
 
   get '/' do
     @songs = Song.all
@@ -31,6 +33,8 @@ class SongsController < Sinatra::Base
 
   post '/songs' do
     @song = Song.create(params[:song])
+    @song.update(name: params[:song][:name])
+
     @song.artist = Artist.find_or_create_by(name: params[:artist][:name])
 
     @song.genres = params[:genres].collect {|num| Genre.find(num)}
@@ -39,4 +43,24 @@ class SongsController < Sinatra::Base
     flash[:message] = "Successfully created song."
     redirect "/songs/#{ @song.slug }"
   end
+
+  get '/songs/:slug/edit' do
+    @song = Song.find_by_slug(params[:slug])
+    erb :"/songs/edit"
+  end
+
+  patch '/songs/:slug' do
+    @song = Song.find_by_slug(params[:slug])
+    @song.update(name: params[:song][:name])
+
+    @song.artist = Artist.find_or_create_by(name: params[:artist][:name])
+
+    @song.genres = params[:genres].collect {|num| Genre.find(num)}
+
+    @song.save
+    flash[:message] = "Successfully updated song."
+
+    redirect "/songs/#{ @song.slug }"
+  end
+
 end
